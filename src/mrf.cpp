@@ -3,7 +3,7 @@
 void MRF::scanCB(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
 
-    std::cout << "scan message received!\n";
+ 
 
     std::vector<std::pair<double, double>> laserPoints;
     for (int i = 0; i < msg->ranges.size(); i++)
