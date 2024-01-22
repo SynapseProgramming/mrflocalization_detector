@@ -8,10 +8,12 @@
 #include <ros/ros.h>
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/buffer.h>
-#include <geometry_msgs/PointStamped.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <sensor_msgs/LaserScan.h>
 #include <mrflocalization_detector/Pose.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <visualization_msgs/Marker.h>
 
 enum MeasurementClass
 {
@@ -24,7 +26,8 @@ class MRF
 {
 private:
     // tf names
-    std::string mapName_ = "map";
+    std::string mapTopicName_ = "map";
+    std::string mapFrameName = "map";
     // map
     cv::Mat distMap_;
     double mapResolution_;
@@ -34,25 +37,30 @@ private:
 
     // scan
     bool gotScan_ = false;
-    std::string scanName_ = "scan";
+    std::string scanTopicName_ = "scan";
+    std::string scanFrameName = "laser_front";
 
     // ros subscribers and publishers
     ros::NodeHandle nh_;
     ros::Subscriber scanSub_;
     ros::Subscriber mapSub_;
+    ros::Publisher markerPub_;
 
-    // tf2_ros::Buffer tfBuffer;
+    tf2_ros::Buffer tfBuffer;
+    tf2_ros::TransformListener tfListener;
 
     // callback function definitions
     void scanCB(const sensor_msgs::LaserScan::ConstPtr &msg);
     void mapCB(const nav_msgs::OccupancyGrid::ConstPtr &msg);
 
 public:
-    MRF() : nh_("~")
+    MRF() : nh_("~"), tfListener(tfBuffer)
     {
+
         // TODO: topic names should be parameters
         scanSub_ = nh_.subscribe("/scan_front", 1, &MRF::scanCB, this);
         mapSub_ = nh_.subscribe("/map", 1, &MRF::mapCB, this);
+        markerPub_ = nh_.advertise<visualization_msgs::Marker>("laserMarkers", 1);
 
         ros::Rate loopRate(10);
 
@@ -70,7 +78,7 @@ public:
                 ROS_ERROR("Cannot get a map message."
                           " Did you publish the map?"
                           " Expected map topic name is %s\n",
-                          mapName_.c_str());
+                          mapTopicName_.c_str());
                 exit(1);
             }
             loopRate.sleep();
@@ -89,7 +97,7 @@ public:
                 ROS_ERROR("Cannot get a scan message."
                           " Did you publish the scan?"
                           " Expected scan topic name is %s\n",
-                          scanName_.c_str());
+                          scanTopicName_.c_str());
                 exit(1);
             }
             loopRate.sleep();
