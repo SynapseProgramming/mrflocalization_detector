@@ -26,8 +26,8 @@ class MRF
 {
 private:
     // tf names
-    std::string mapTopicName_ = "map";
-    std::string mapFrameName = "map";
+    std::string mapTopicName;
+    std::string mapFrameName;
     // map
     cv::Mat distMap_;
     double mapResolution_;
@@ -37,8 +37,8 @@ private:
 
     // scan
     bool gotScan_ = false;
-    std::string scanTopicName_ = "scan";
-    std::string scanFrameName = "laser_front";
+    std::string scanTopicName;
+    std::string scanFrameName;
 
     // ros subscribers and publishers
     ros::NodeHandle nh_;
@@ -57,10 +57,18 @@ private:
     void xy2uv(double x, double y, int *u, int *v);
 
 public:
-    MRF() : nh_("~"), tfListener(tfBuffer)
+    MRF() : nh_("~"), tfListener(tfBuffer),
+            mapTopicName("map"),
+            mapFrameName("map"),
+            scanTopicName("scan"),
+            scanFrameName("laser_front")
     {
 
-        // TODO: topic names should be parameters
+        nh_.param("map_topic_name", mapTopicName, mapTopicName);
+        nh_.param("map_frame_name", mapFrameName, mapFrameName);
+        nh_.param("scan_topic_name", scanTopicName, scanTopicName);
+        nh_.param("scan_frame_name", scanFrameName, scanFrameName);
+
         scanSub_ = nh_.subscribe("/scan_front", 1, &MRF::scanCB, this);
         mapSub_ = nh_.subscribe("/map", 1, &MRF::mapCB, this);
 
@@ -80,7 +88,7 @@ public:
                 ROS_ERROR("Cannot get a map message."
                           " Did you publish the map?"
                           " Expected map topic name is %s\n",
-                          mapTopicName_.c_str());
+                          mapTopicName.c_str());
                 exit(1);
             }
             loopRate.sleep();
@@ -99,7 +107,7 @@ public:
                 ROS_ERROR("Cannot get a scan message."
                           " Did you publish the scan?"
                           " Expected scan topic name is %s\n",
-                          scanTopicName_.c_str());
+                          scanTopicName.c_str());
                 exit(1);
             }
             loopRate.sleep();
