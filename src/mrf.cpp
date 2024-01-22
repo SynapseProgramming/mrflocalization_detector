@@ -5,20 +5,6 @@ void MRF::scanCB(const sensor_msgs::LaserScan::ConstPtr &msg)
 
     std::cout << "scan message received!\n";
 
-    // plot point_out in rviz for testing
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = mapFrameName;
-    marker.header.stamp = ros::Time::now();
-    marker.ns = "laser_points";
-    marker.id = 0;
-    marker.type = visualization_msgs::Marker::POINTS;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.orientation.w = 1.0;
-    marker.scale.x = 0.1;
-    marker.scale.y = 0.1;
-    marker.color.r = 1.0;
-    marker.color.a = 1.0;
-
     std::vector<std::pair<double, double>> laserPoints;
     for (int i = 0; i < msg->ranges.size(); i++)
     {
@@ -26,34 +12,34 @@ void MRF::scanCB(const sensor_msgs::LaserScan::ConstPtr &msg)
         double xx = msg->ranges[i] * cos(d);
         double yy = msg->ranges[i] * sin(d);
         if (xx >= -100 && xx <= 100 && yy >= -100 && yy <= 100)
-            laserPoints.push_back(std::make_pair(xx, yy));
-    }
-    // translate laser points to be wrt to map frame
-    geometry_msgs::Point point;
-    for (int i = 0; i < laserPoints.size(); i++)
-    {
-        auto it = laserPoints[i];
-        geometry_msgs::PointStamped point_in;
-        geometry_msgs::PointStamped point_out;
-        point_in.header.frame_id = scanFrameName;
-        point_in.point.x = it.first;
-        point_in.point.y = it.second;
-        try
         {
-            point_out = tfBuffer.transform(point_in, mapFrameName);
+            // translate laser points to be wrt to map frame
+            geometry_msgs::PointStamped point_in;
+            geometry_msgs::PointStamped point_out;
+            point_in.header.frame_id = scanFrameName;
+            point_in.point.x = xx;
+            point_in.point.y = yy;
+            try
+            {
+                point_out = tfBuffer.transform(point_in, mapFrameName);
+            }
+            catch (tf2::TransformException &ex)
+            {
+                ROS_WARN("%s", ex.what());
+                return;
+            }
+            double mapX = point_out.point.x;
+            double mapY = point_out.point.y;
+            // image width and image height are pixel indices
+            int imageWidth = 0;
+            int imageHeight = 0;
+            xy2uv(mapX, mapY, &imageWidth, &imageHeight);
+            if (onMap(imageWidth, imageHeight))
+            {
+                std::cout << imageWidth << " " << imageHeight << " " << distMap_.at<float>(imageHeight, imageWidth) << "\n";
+            }
         }
-        catch (tf2::TransformException &ex)
-        {
-            ROS_WARN("%s", ex.what());
-            return;
-        }
-
-        point = point_out.point;
-        if (i % 10 == 0)
-            marker.points.push_back(point);
     }
-
-    markerPub_.publish(marker);
 
     gotScan_ = true;
 }
@@ -107,4 +93,23 @@ void MRF::mapCB(const nav_msgs::OccupancyGrid::ConstPtr &msg)
     std::cout << "origin y: " << mapOrigin_.getY() << "\n";
     std::cout << "origin yaw: " << mapOrigin_.getYaw() << "\n";
     gotMap_ = true;
+}
+
+bool MRF::onMap(int u, int v)
+{
+    if (0 <= u && u < mapWidth_ && 0 <= v && v < mapHeight_)
+        return true;
+    else
+        return false;
+}
+
+void MRF::xy2uv(double x, double y, int *u, int *v)
+{
+    double dx = x - mapOrigin_.getX();
+    double dy = y - mapOrigin_.getY();
+    double yaw = -mapOrigin_.getYaw();
+    double xx = dx * cos(yaw) - dy * sin(yaw);
+    double yy = dx * sin(yaw) + dy * cos(yaw);
+    *u = (int)(xx / mapResolution_);
+    *v = (int)(yy / mapResolution_);
 }

@@ -44,7 +44,6 @@ private:
     ros::NodeHandle nh_;
     ros::Subscriber scanSub_;
     ros::Subscriber mapSub_;
-    ros::Publisher markerPub_;
 
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener;
@@ -53,6 +52,10 @@ private:
     void scanCB(const sensor_msgs::LaserScan::ConstPtr &msg);
     void mapCB(const nav_msgs::OccupancyGrid::ConstPtr &msg);
 
+    bool onMap(int u, int v);
+
+    void xy2uv(double x, double y, int *u, int *v);
+
 public:
     MRF() : nh_("~"), tfListener(tfBuffer)
     {
@@ -60,7 +63,6 @@ public:
         // TODO: topic names should be parameters
         scanSub_ = nh_.subscribe("/scan_front", 1, &MRF::scanCB, this);
         mapSub_ = nh_.subscribe("/map", 1, &MRF::mapCB, this);
-        markerPub_ = nh_.advertise<visualization_msgs::Marker>("laserMarkers", 1);
 
         ros::Rate loopRate(10);
 
