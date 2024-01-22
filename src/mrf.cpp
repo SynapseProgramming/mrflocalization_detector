@@ -53,8 +53,6 @@ void MRF::mapCB(const nav_msgs::OccupancyGrid::ConstPtr &msg)
     mapWidth_ = msg->info.width;
     mapHeight_ = msg->info.height;
     mapResolution_ = msg->info.resolution;
-    std::cout << "map width: " << mapWidth_ << "\n";
-    std::cout << "map height: " << mapHeight_ << "\n";
     cv::Mat binMap(mapHeight_, mapWidth_, CV_8UC1);
     for (int v = 0; v < mapHeight_; v++)
     {
@@ -89,9 +87,6 @@ void MRF::mapCB(const nav_msgs::OccupancyGrid::ConstPtr &msg)
     mapOrigin_.setX(msg->info.origin.position.x);
     mapOrigin_.setY(msg->info.origin.position.y);
     mapOrigin_.setYaw(yaw);
-    std::cout << "origin x: " << mapOrigin_.getX() << "\n";
-    std::cout << "origin y: " << mapOrigin_.getY() << "\n";
-    std::cout << "origin yaw: " << mapOrigin_.getYaw() << "\n";
     gotMap_ = true;
 }
 
