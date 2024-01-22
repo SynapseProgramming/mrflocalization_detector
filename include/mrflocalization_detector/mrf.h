@@ -44,9 +44,39 @@ private:
     ros::NodeHandle nh_;
     ros::Subscriber scanSub_;
     ros::Subscriber mapSub_;
+    std::string residualErrorsName_;
+    std::string failureProbName_, alignedScanName_, misalignedScanName_, unknownScanName_;
+    ros::Publisher failureProbPub_, alignedScanPub_, misalignedScanPub_, unknownScanPub_;
+    bool publishClassifiedScans_;
 
+    std::string failureProbabilityMarkerName_, markerFrame_;
+    ros::Publisher failureProbabilityMarkerPub_;
+    bool publishFailureProbabilityMarker_;
+
+    // transforms
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener;
+
+    // parameters
+    double maxResidualError_;
+    double NDMean_, NDVar_, NDNormConst_, EDLambda_;
+    int minValidResidualErrorsNum_, maxResidualErrorsNum_;
+    int maxLPBComputationNum_;
+    int samplingNum_;
+    double residualErrorReso_;
+    double misalignmentRatioThreshold_, unknownRatioThreshold_;
+    std::vector<double> transitionProbMat_;
+
+    sensor_msgs::LaserScan residualErrors_;
+    std::vector<double> usedResidualErrors_;
+    std::vector<int> usedScanIndices_;
+    bool canUpdateResidualErrors_, gotResidualErrors_;
+    double failureDetectionHz_;
+
+    // results
+    std::vector<std::vector<double>> measurementClassProbabilities_;
+    double failureProbability_;
+    ros::Time failureProbabilityStamp_;
 
     // callback function definitions
     void scanCB(const sensor_msgs::LaserScan::ConstPtr &msg);
@@ -61,13 +91,62 @@ public:
             mapTopicName("map"),
             mapFrameName("map"),
             scanTopicName("scan"),
-            scanFrameName("laser_front")
+            scanFrameName("laser_front"),
+            residualErrorsName_("/residual_errors"),
+            failureProbName_("/failure_probability"),
+            alignedScanName_("/aligned_scan_mrf"),
+            misalignedScanName_("/misaligned_scan_mrf"),
+            unknownScanName_("/unknown_scan_mrf"),
+            publishClassifiedScans_(true),
+            failureProbabilityMarkerName_("/failure_probability_marker"),
+            publishFailureProbabilityMarker_(true),
+            markerFrame_("base_link"),
+            NDMean_(0.0),
+            NDVar_(0.04),
+            EDLambda_(4.0),
+            maxResidualError_(1.0),
+            residualErrorReso_(0.05),
+            minValidResidualErrorsNum_(10),
+            maxResidualErrorsNum_(200),
+            maxLPBComputationNum_(1000),
+            samplingNum_(1000),
+            misalignmentRatioThreshold_(0.1),
+            unknownRatioThreshold_(0.7),
+            transitionProbMat_({0.8, 0.0, 0.2, 0.0, 0.8, 0.2, 0.333333, 0.333333, 0.333333}),
+            canUpdateResidualErrors_(true),
+            gotResidualErrors_(false),
+            failureDetectionHz_(10.0)
     {
 
         nh_.param("map_topic_name", mapTopicName, mapTopicName);
         nh_.param("map_frame_name", mapFrameName, mapFrameName);
         nh_.param("scan_topic_name", scanTopicName, scanTopicName);
         nh_.param("scan_frame_name", scanFrameName, scanFrameName);
+
+        // input and output message names
+        nh_.param("residual_errors_name", residualErrorsName_, residualErrorsName_);
+        nh_.param("failure_probability_name", failureProbName_, failureProbName_);
+        nh_.param("publish_classified_scans", publishClassifiedScans_, publishClassifiedScans_);
+        nh_.param("aligned_scan_mrf", alignedScanName_, alignedScanName_);
+        nh_.param("misaligned_scan_mrf", misalignedScanName_, misalignedScanName_);
+        nh_.param("unknown_scan_mrf", unknownScanName_, unknownScanName_);
+        nh_.param("failure_probability_marker_name", failureProbabilityMarkerName_, failureProbabilityMarkerName_);
+        nh_.param("publish_failure_probability_marker", publishFailureProbabilityMarker_, publishFailureProbabilityMarker_);
+        nh_.param("marker_frame", markerFrame_, markerFrame_);
+
+        // parameters
+        nh_.param("normal_distribution_mean", NDMean_, NDMean_);
+        nh_.param("normal_distribution_var", NDVar_, NDVar_);
+        nh_.param("exponential_distribution_lambda", EDLambda_, EDLambda_);
+        nh_.param("max_residual_error", maxResidualError_, maxResidualError_);
+        nh_.param("residual_error_resolution", residualErrorReso_, residualErrorReso_);
+        nh_.param("min_valid_residual_errors_num", minValidResidualErrorsNum_, minValidResidualErrorsNum_);
+        nh_.param("max_residual_errors_num", maxResidualErrorsNum_, maxResidualErrorsNum_);
+        nh_.param("max_lpb_computation_num", maxLPBComputationNum_, maxLPBComputationNum_);
+        nh_.param("sampling_num", samplingNum_, samplingNum_);
+        nh_.param("misalignment_ratio_threshold", misalignmentRatioThreshold_, misalignmentRatioThreshold_);
+        nh_.param("unknown_ratio_threshold", unknownRatioThreshold_, unknownRatioThreshold_);
+        nh_.param("transition_probability_matrix", transitionProbMat_, transitionProbMat_);
 
         scanSub_ = nh_.subscribe("/scan_front", 1, &MRF::scanCB, this);
         mapSub_ = nh_.subscribe("/map", 1, &MRF::mapCB, this);
