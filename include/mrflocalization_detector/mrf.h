@@ -86,36 +86,22 @@ private:
 
     void xy2uv(double x, double y, int *u, int *v);
 
+    inline double calculateNormalDistribution(double e);
+    inline double calculateExponentialDistribution(double e);
+    inline double calculateUniformDistribution(void);
+    inline double getSumOfVector(std::vector<double> vector);
+    inline std::vector<double> getHadamardProduct(std::vector<double> vector1, std::vector<double> vector2);
+    inline std::vector<double> normalizeVector(std::vector<double> vector);
+    inline double getEuclideanNormOfDiffVectors(std::vector<double> vector1, std::vector<double> vector2);
+    inline std::vector<double> calculateTransitionMessage(std::vector<double> probs);
+    std::vector<std::vector<double>> getLikelihoodVectors(std::vector<double> validResidualErrors);
+    std::vector<std::vector<double>> estimateMeasurementClassProbabilities(std::vector<std::vector<double>> likelihoodVectors);
+    double predictFailureProbabilityBySampling(std::vector<std::vector<double>> measurementClassProbabilities);
+    void setAllMeasurementClassProbabilities(std::vector<double> residualErrors, std::vector<std::vector<double>> measurementClassProbabilities);
+    std::vector<int> getResidualErrorClasses(void);
+
 public:
-    MRF() : nh_("~"), tfListener(tfBuffer),
-            mapTopicName("map"),
-            mapFrameName("map"),
-            scanTopicName("scan"),
-            scanFrameName("laser_front"),
-            residualErrorsName_("/residual_errors"),
-            failureProbName_("/failure_probability"),
-            alignedScanName_("/aligned_scan_mrf"),
-            misalignedScanName_("/misaligned_scan_mrf"),
-            unknownScanName_("/unknown_scan_mrf"),
-            publishClassifiedScans_(true),
-            failureProbabilityMarkerName_("/failure_probability_marker"),
-            publishFailureProbabilityMarker_(true),
-            markerFrame_("base_link"),
-            NDMean_(0.0),
-            NDVar_(0.04),
-            EDLambda_(4.0),
-            maxResidualError_(1.0),
-            residualErrorReso_(0.05),
-            minValidResidualErrorsNum_(10),
-            maxResidualErrorsNum_(200),
-            maxLPBComputationNum_(1000),
-            samplingNum_(1000),
-            misalignmentRatioThreshold_(0.1),
-            unknownRatioThreshold_(0.7),
-            transitionProbMat_({0.8, 0.0, 0.2, 0.0, 0.8, 0.2, 0.333333, 0.333333, 0.333333}),
-            canUpdateResidualErrors_(true),
-            gotResidualErrors_(false),
-            failureDetectionHz_(10.0)
+    MRF() : nh_("~"), tfListener(tfBuffer), mapTopicName("map"), mapFrameName("map"), scanTopicName("scan"), scanFrameName("laser_front"), residualErrorsName_("/residual_errors"), failureProbName_("/failure_probability"), alignedScanName_("/aligned_scan_mrf"), misalignedScanName_("/misaligned_scan_mrf"), unknownScanName_("/unknown_scan_mrf"), publishClassifiedScans_(true), failureProbabilityMarkerName_("/failure_probability_marker"), publishFailureProbabilityMarker_(true), markerFrame_("base_link"), NDMean_(0.0), NDVar_(0.04), EDLambda_(4.0), maxResidualError_(1.0), residualErrorReso_(0.05), minValidResidualErrorsNum_(10), maxResidualErrorsNum_(200), maxLPBComputationNum_(1000), samplingNum_(1000), misalignmentRatioThreshold_(0.1), unknownRatioThreshold_(0.7), transitionProbMat_({0.8, 0.0, 0.2, 0.0, 0.8, 0.2, 0.333333, 0.333333, 0.333333}), canUpdateResidualErrors_(true), gotResidualErrors_(false), failureDetectionHz_(10.0)
     {
 
         nh_.param("map_topic_name", mapTopicName, mapTopicName);
@@ -192,6 +178,24 @@ public:
             loopRate.sleep();
         }
     }
+
+    // getters and setters
+    inline void setMaxResidualError(double maxResidualError) { maxResidualError_ = maxResidualError; }
+    inline void setNDMean(double NDMean) { NDMean_ = NDMean; }
+    inline void setNDVariance(double NDVar) { NDVar_ = NDVar, NDNormConst_ = 1.0 / sqrt(2.0 * M_PI * NDVar_); }
+    inline void setEDLambda(double EDLambda) { EDLambda_ = EDLambda; }
+    inline void setResidualErrorReso(double residualErrorReso) { residualErrorReso_ = residualErrorReso; }
+    inline void setMinValidResidualErrorNum(int minValidResidualErrorNum) { minValidResidualErrorsNum_ = minValidResidualErrorNum; }
+    inline void setMaxLPBComputationNum(int maxLPBComputationNum) { maxLPBComputationNum_ = maxLPBComputationNum; }
+    inline void setSamplingNum(int samplingNum) { samplingNum_ = samplingNum; }
+    inline void setMisalignmentRatioThreshold(double misalignmentRatioThreshold) { misalignmentRatioThreshold_ = misalignmentRatioThreshold; }
+    inline void setTransitionProbMat(std::vector<double> transitionProbMat) { transitionProbMat_ = transitionProbMat; }
+    inline void setCanUpdateResidualErrors(bool canUpdateResidualErrors) { canUpdateResidualErrors_ = canUpdateResidualErrors; }
+
+    inline double getFailureProbability(void) { return failureProbability_; }
+    inline double getMeasurementClassProbabilities(int errorIndex, int measurementClass) { return measurementClassProbabilities_[errorIndex][measurementClass]; }
+    inline std::vector<double> getMeasurementClassProbabilities(int errorIndex) { return measurementClassProbabilities_[errorIndex]; }
+    inline double getFailureDetectionHz(void) { return failureDetectionHz_; }
 };
 
 #endif
