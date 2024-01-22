@@ -4,10 +4,14 @@ void MRF::scanCB(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
 
     std::cout << "scan message received!\n";
+    gotScan_ = true;
 }
 
 void MRF::mapCB(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 {
+
+    if (gotMap_)
+        return;
     // perform distance transform to build the distance field
     mapWidth_ = msg->info.width;
     mapHeight_ = msg->info.height;
@@ -37,9 +41,9 @@ void MRF::mapCB(const nav_msgs::OccupancyGrid::ConstPtr &msg)
     }
     distMap_ = distMap;
     tf2::Quaternion q(msg->info.origin.orientation.x,
-                     msg->info.origin.orientation.y,
-                     msg->info.origin.orientation.z,
-                     msg->info.origin.orientation.w);
+                      msg->info.origin.orientation.y,
+                      msg->info.origin.orientation.z,
+                      msg->info.origin.orientation.w);
     double roll, pitch, yaw;
     tf2::Matrix3x3 m(q);
     m.getRPY(roll, pitch, yaw);
