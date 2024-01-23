@@ -39,17 +39,14 @@ void MRF::scanCB(const sensor_msgs::LaserScan::ConstPtr &msg)
         xy2uv(mapX, mapY, &imageWidth, &imageHeight);
         if (onMap(imageWidth, imageHeight))
         {
-            // std::cout << imageWidth << " " << imageHeight << " " << distMap_.at<float>(imageHeight, imageWidth) << "\n";
             double residualError = distMap_.at<float>(imageHeight, imageWidth);
             validResidualErrors.push_back(residualError);
-            // std::cout << residualError << " ";
         }
         else
         {
             validResidualErrors.push_back(-1.0);
         }
     }
-    // std::cout << "\n";
 
     // pass as aruments
     predictFailureProbability(validResidualErrors);
@@ -190,12 +187,8 @@ std::vector<std::vector<double>> MRF::getLikelihoodVectors(std::vector<double> v
         likelihoodVectors[i].resize(3);
         likelihoodVectors[i][ALIGNED] = calculateNormalDistribution(validResidualErrors[i]);
         likelihoodVectors[i][MISALIGNED] = calculateExponentialDistribution(validResidualErrors[i]);
-        if(i==0) std::cout<<"likelihood v aligned: "<< likelihoodVectors[i][ALIGNED]<<"\n";
-        if(i==0) std::cout<<"likelihood v misalg: "<< likelihoodVectors[i][MISALIGNED]<<"\n";
         likelihoodVectors[i][UNKNOWN] = pud;
         likelihoodVectors[i] = normalizeVector(likelihoodVectors[i]);
-        if(i==0) std::cout<<"likelihood v misalg norm: "<< likelihoodVectors[i][MISALIGNED]<<"\n";
-        if(i==0) std::cout<<"likelihood v aligned norm: "<< likelihoodVectors[i][ALIGNED]<<"\n";
     }
     return likelihoodVectors;
 }
@@ -268,10 +261,7 @@ double MRF::predictFailureProbabilityBySampling(std::vector<std::vector<double>>
             if (darts > measurementClassProbabilities[j][ALIGNED])
                 misalignedNum++;
         }
-        // std::cout << "misaligned: " << misalignedNum << " valid meas " << validMeasurementNum << "\n";
         double misalignmentRatio = (double)misalignedNum / (double)validMeasurementNum;
-        // std::cout << "misalignment ratio"
-        //           << " " << misalignmentRatio << "\n";
         double unknownRatio = (double)(measurementNum - validMeasurementNum) / (double)measurementNum;
         if (misalignmentRatio >= misalignmentRatioThreshold_ || unknownRatio >= unknownRatioThreshold_)
             failureCnt++;
@@ -336,7 +326,6 @@ void MRF::predictFailureProbability(std::vector<double> ResidualErrors)
             validScanIndices.push_back(i);
         }
     }
-    std::cout << "valid size: " << validResidualErrors.size() << "\n";
 
     int validResidualErrorsSize = (int)validResidualErrors.size();
     if (validResidualErrorsSize <= minValidResidualErrorsNum_)
@@ -365,21 +354,11 @@ void MRF::predictFailureProbability(std::vector<double> ResidualErrors)
             validScanIndices.erase(validScanIndices.begin() + idx);
         }
     }
-    std::cout << "first residual error: " << usedResidualErrors_[0] << "\n";
     std::vector<std::vector<double>> likelihoodVectors = getLikelihoodVectors(usedResidualErrors_);
     std::vector<double> fs = likelihoodVectors[0];
-    std::cout << "likelhood vectors\n";
-    for (double x : fs)
-        std::cout << x << " ";
-    std::cout << "\n";
     std::vector<std::vector<double>> measurementClassProbabilities = estimateMeasurementClassProbabilities(likelihoodVectors);
     std::vector<double> first = measurementClassProbabilities[0];
-    std::cout << "measurement probabilities\n";
-    for (double x : first)
-        std::cout << x << " ";
-    std::cout << "\n";
     setAllMeasurementClassProbabilities(usedResidualErrors_, measurementClassProbabilities);
     failureProbability_ = predictFailureProbabilityBySampling(measurementClassProbabilities_);
     std::cout << "Failure Probability: " << failureProbability_ << "\n";
-    std::cout << "forced exponential distribution: " << calculateExponentialDistribution(0) << "\n";
 }
