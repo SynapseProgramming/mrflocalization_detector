@@ -177,6 +177,9 @@ public:
             }
             loopRate.sleep();
         }
+
+        // fixed parameters
+        NDNormConst_ = 1.0 / sqrt(2.0 * M_PI * NDVar_);
     }
 
     // getters and setters
@@ -196,6 +199,8 @@ public:
     inline double getMeasurementClassProbabilities(int errorIndex, int measurementClass) { return measurementClassProbabilities_[errorIndex][measurementClass]; }
     inline std::vector<double> getMeasurementClassProbabilities(int errorIndex) { return measurementClassProbabilities_[errorIndex]; }
     inline double getFailureDetectionHz(void) { return failureDetectionHz_; }
+
+    void predictFailureProbability(std::vector<double> ResidualErrors);
 };
 
 #endif

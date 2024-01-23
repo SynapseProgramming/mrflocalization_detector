@@ -3,40 +3,56 @@
 void MRF::scanCB(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
 
+    std::vector<double> validResidualErrors;
     for (int i = 0; i < msg->ranges.size(); i++)
     {
+        double distance = msg->ranges[i];
+        if (distance <= msg->range_min || msg->range_max <= distance)
+        {
+            validResidualErrors.push_back(-1.0);
+            continue;
+        }
+
         double d = (double)i * msg->angle_increment + msg->angle_min;
         double xx = msg->ranges[i] * cos(d);
         double yy = msg->ranges[i] * sin(d);
-        if (xx >= -100 && xx <= 100 && yy >= -100 && yy <= 100)
+        // translate laser points to be wrt to map frame
+        geometry_msgs::PointStamped point_in;
+        geometry_msgs::PointStamped point_out;
+        point_in.header.frame_id = scanFrameName;
+        point_in.point.x = xx;
+        point_in.point.y = yy;
+        try
         {
-            // translate laser points to be wrt to map frame
-            geometry_msgs::PointStamped point_in;
-            geometry_msgs::PointStamped point_out;
-            point_in.header.frame_id = scanFrameName;
-            point_in.point.x = xx;
-            point_in.point.y = yy;
-            try
-            {
-                point_out = tfBuffer.transform(point_in, mapFrameName);
-            }
-            catch (tf2::TransformException &ex)
-            {
-                ROS_WARN("%s", ex.what());
-                return;
-            }
-            double mapX = point_out.point.x;
-            double mapY = point_out.point.y;
-            // image width and image height are pixel indices
-            int imageWidth = 0;
-            int imageHeight = 0;
-            xy2uv(mapX, mapY, &imageWidth, &imageHeight);
-            if (onMap(imageWidth, imageHeight))
-            {
-                std::cout << imageWidth << " " << imageHeight << " " << distMap_.at<float>(imageHeight, imageWidth) << "\n";
-            }
+            point_out = tfBuffer.transform(point_in, mapFrameName);
+        }
+        catch (tf2::TransformException &ex)
+        {
+            ROS_WARN("%s", ex.what());
+            return;
+        }
+        double mapX = point_out.point.x;
+        double mapY = point_out.point.y;
+        // image width and image height are pixel indices
+        int imageWidth = 0;
+        int imageHeight = 0;
+        xy2uv(mapX, mapY, &imageWidth, &imageHeight);
+        if (onMap(imageWidth, imageHeight))
+        {
+            // std::cout << imageWidth << " " << imageHeight << " " << distMap_.at<float>(imageHeight, imageWidth) << "\n";
+            double residualError = distMap_.at<float>(imageHeight, imageWidth);
+            validResidualErrors.push_back(residualError);
+            // std::cout << residualError << " ";
+        }
+        else
+        {
+            validResidualErrors.push_back(-1.0);
         }
     }
+    // std::cout << "\n";
+
+    // pass as aruments
+    predictFailureProbability(validResidualErrors);
 
     gotScan_ = true;
 }
@@ -174,8 +190,12 @@ std::vector<std::vector<double>> MRF::getLikelihoodVectors(std::vector<double> v
         likelihoodVectors[i].resize(3);
         likelihoodVectors[i][ALIGNED] = calculateNormalDistribution(validResidualErrors[i]);
         likelihoodVectors[i][MISALIGNED] = calculateExponentialDistribution(validResidualErrors[i]);
+        if(i==0) std::cout<<"likelihood v aligned: "<< likelihoodVectors[i][ALIGNED]<<"\n";
+        if(i==0) std::cout<<"likelihood v misalg: "<< likelihoodVectors[i][MISALIGNED]<<"\n";
         likelihoodVectors[i][UNKNOWN] = pud;
         likelihoodVectors[i] = normalizeVector(likelihoodVectors[i]);
+        if(i==0) std::cout<<"likelihood v misalg norm: "<< likelihoodVectors[i][MISALIGNED]<<"\n";
+        if(i==0) std::cout<<"likelihood v aligned norm: "<< likelihoodVectors[i][ALIGNED]<<"\n";
     }
     return likelihoodVectors;
 }
@@ -248,7 +268,10 @@ double MRF::predictFailureProbabilityBySampling(std::vector<std::vector<double>>
             if (darts > measurementClassProbabilities[j][ALIGNED])
                 misalignedNum++;
         }
+        // std::cout << "misaligned: " << misalignedNum << " valid meas " << validMeasurementNum << "\n";
         double misalignmentRatio = (double)misalignedNum / (double)validMeasurementNum;
+        // std::cout << "misalignment ratio"
+        //           << " " << misalignmentRatio << "\n";
         double unknownRatio = (double)(measurementNum - validMeasurementNum) / (double)measurementNum;
         if (misalignmentRatio >= misalignmentRatioThreshold_ || unknownRatio >= unknownRatioThreshold_)
             failureCnt++;
@@ -278,20 +301,85 @@ void MRF::setAllMeasurementClassProbabilities(std::vector<double> residualErrors
     }
 }
 
-
-  std::vector<int> MRF::getResidualErrorClasses(void) {
-        int size = (int)measurementClassProbabilities_.size();
-        std::vector<int> residualErrorClasses(size);
-        for (int i = 0; i < size; i++) {
-            double alignedProb = measurementClassProbabilities_[i][ALIGNED];
-            double misalignedProb = measurementClassProbabilities_[i][MISALIGNED];
-            double unknownProb = measurementClassProbabilities_[i][UNKNOWN];
-            if (alignedProb > misalignedProb && alignedProb > unknownProb)
-                residualErrorClasses[i] = ALIGNED;
-            else if (misalignedProb > alignedProb && misalignedProb > unknownProb)
-                residualErrorClasses[i] = MISALIGNED;
-            else
-                residualErrorClasses[i] = UNKNOWN;
-        }
-        return residualErrorClasses;
+std::vector<int> MRF::getResidualErrorClasses(void)
+{
+    int size = (int)measurementClassProbabilities_.size();
+    std::vector<int> residualErrorClasses(size);
+    for (int i = 0; i < size; i++)
+    {
+        double alignedProb = measurementClassProbabilities_[i][ALIGNED];
+        double misalignedProb = measurementClassProbabilities_[i][MISALIGNED];
+        double unknownProb = measurementClassProbabilities_[i][UNKNOWN];
+        if (alignedProb > misalignedProb && alignedProb > unknownProb)
+            residualErrorClasses[i] = ALIGNED;
+        else if (misalignedProb > alignedProb && misalignedProb > unknownProb)
+            residualErrorClasses[i] = MISALIGNED;
+        else
+            residualErrorClasses[i] = UNKNOWN;
     }
+    return residualErrorClasses;
+}
+
+void MRF::predictFailureProbability(std::vector<double> ResidualErrors)
+{
+
+    std::vector<double> validResidualErrors;
+    std::vector<int> validScanIndices;
+
+    // create a new array only containing valid residual errors(closest distance <=1m)
+    for (int i = 0; i < (int)ResidualErrors.size(); ++i)
+    {
+        double e = ResidualErrors[i];
+        if (0.0 <= e && e <= maxResidualError_)
+        {
+            validResidualErrors.push_back(e);
+            validScanIndices.push_back(i);
+        }
+    }
+    std::cout << "valid size: " << validResidualErrors.size() << "\n";
+
+    int validResidualErrorsSize = (int)validResidualErrors.size();
+    if (validResidualErrorsSize <= minValidResidualErrorsNum_)
+    {
+        std::cerr << "WARNING: Number of validResidualErrors is less than the expected threshold number."
+                  << " The threshold is " << minValidResidualErrorsNum_ << ", but the number of validResidualErrors " << validResidualErrorsSize << "." << std::endl;
+        failureProbability_ = -1.0;
+        return;
+    }
+    else if (validResidualErrorsSize <= maxResidualErrorsNum_)
+    {
+        usedResidualErrors_ = validResidualErrors;
+        usedScanIndices_ = validScanIndices;
+    }
+    else
+    { // undersample the residual errors
+
+        usedResidualErrors_.resize(maxResidualErrorsNum_);
+        usedScanIndices_.resize(maxResidualErrorsNum_);
+        for (int i = 0; i < maxResidualErrorsNum_; ++i)
+        {
+            int idx = rand() % (int)validResidualErrors.size();
+            usedResidualErrors_[i] = validResidualErrors[idx];
+            usedScanIndices_[i] = validScanIndices[idx];
+            validResidualErrors.erase(validResidualErrors.begin() + idx);
+            validScanIndices.erase(validScanIndices.begin() + idx);
+        }
+    }
+    std::cout << "first residual error: " << usedResidualErrors_[0] << "\n";
+    std::vector<std::vector<double>> likelihoodVectors = getLikelihoodVectors(usedResidualErrors_);
+    std::vector<double> fs = likelihoodVectors[0];
+    std::cout << "likelhood vectors\n";
+    for (double x : fs)
+        std::cout << x << " ";
+    std::cout << "\n";
+    std::vector<std::vector<double>> measurementClassProbabilities = estimateMeasurementClassProbabilities(likelihoodVectors);
+    std::vector<double> first = measurementClassProbabilities[0];
+    std::cout << "measurement probabilities\n";
+    for (double x : first)
+        std::cout << x << " ";
+    std::cout << "\n";
+    setAllMeasurementClassProbabilities(usedResidualErrors_, measurementClassProbabilities);
+    failureProbability_ = predictFailureProbabilityBySampling(measurementClassProbabilities_);
+    std::cout << "Failure Probability: " << failureProbability_ << "\n";
+    std::cout << "forced exponential distribution: " << calculateExponentialDistribution(0) << "\n";
+}
