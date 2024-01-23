@@ -2,6 +2,7 @@
 
 void MRF::scanCB(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
+    residualErrors_ = *msg;
 
     std::vector<double> validResidualErrors;
     for (int i = 0; i < msg->ranges.size(); i++)
@@ -263,6 +264,8 @@ double MRF::predictFailureProbabilityBySampling(std::vector<std::vector<double>>
         }
         double misalignmentRatio = (double)misalignedNum / (double)validMeasurementNum;
         double unknownRatio = (double)(measurementNum - validMeasurementNum) / (double)measurementNum;
+        std::cout << "misalignment ratio: " << misalignmentRatio << "\n";
+        std::cout << "unknown ratio: " << unknownRatio << "\n";
         if (misalignmentRatio >= misalignmentRatioThreshold_ || unknownRatio >= unknownRatioThreshold_)
             failureCnt++;
     }
@@ -361,4 +364,42 @@ void MRF::predictFailureProbability(std::vector<double> ResidualErrors)
     setAllMeasurementClassProbabilities(usedResidualErrors_, measurementClassProbabilities);
     failureProbability_ = predictFailureProbabilityBySampling(measurementClassProbabilities_);
     std::cout << "Failure Probability: " << failureProbability_ << "\n";
+    publishScans();
+}
+
+void MRF::publishScans()
+{
+    std::vector<int> residualErrorClasses = getResidualErrorClasses();
+    sensor_msgs::LaserScan alignedScan, misalignedScan, unknownScan;
+    alignedScan.header = misalignedScan.header = unknownScan.header = residualErrors_.header;
+    alignedScan.range_min = misalignedScan.range_min = unknownScan.range_min = residualErrors_.range_min;
+    alignedScan.range_max = misalignedScan.range_max = unknownScan.range_max = residualErrors_.range_max;
+    alignedScan.angle_min = misalignedScan.angle_min = unknownScan.angle_min = residualErrors_.angle_min;
+    alignedScan.angle_max = misalignedScan.angle_max = unknownScan.angle_max = residualErrors_.angle_max;
+    alignedScan.angle_increment = misalignedScan.angle_increment = unknownScan.angle_increment = residualErrors_.angle_increment;
+    alignedScan.time_increment = misalignedScan.time_increment = unknownScan.time_increment = residualErrors_.time_increment;
+    alignedScan.scan_time = misalignedScan.scan_time = unknownScan.scan_time = residualErrors_.scan_time;
+    int size = (int)residualErrors_.ranges.size();
+    alignedScan.ranges.resize(size);
+    misalignedScan.ranges.resize(size);
+    unknownScan.ranges.resize(size);
+    alignedScan.intensities.resize(size);
+    misalignedScan.intensities.resize(size);
+    unknownScan.intensities.resize(size);
+
+    for (int i = 0; i < (int)usedResidualErrors_.size(); ++i)
+    {
+        int idx = usedScanIndices_[i];
+        // std::cout << usedResidualErrors_[i] << " ";
+        if (residualErrorClasses[i] == ALIGNED)
+            alignedScan.ranges[idx] = residualErrors_.ranges[idx];
+        else if (residualErrorClasses[i] == MISALIGNED)
+            misalignedScan.ranges[idx] = residualErrors_.ranges[idx];
+        else
+            unknownScan.ranges[idx] = residualErrors_.ranges[idx];
+    }
+    // std::cout << "\n";
+    alignedScanPub_.publish(alignedScan);
+    misalignedScanPub_.publish(misalignedScan);
+    unknownScanPub_.publish(unknownScan);
 }
