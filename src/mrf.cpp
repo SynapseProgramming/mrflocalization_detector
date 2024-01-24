@@ -40,8 +40,8 @@ void MRF::scanCB(const sensor_msgs::LaserScan::ConstPtr &msg) {
     }
   }
 
-  // pass as aruments
-  predictFailureProbability(validResidualErrors);
+  // update global variable
+  receivedResidualErrors_ = validResidualErrors;
 
   gotScan_ = true;
 }
@@ -294,14 +294,14 @@ std::vector<int> MRF::getResidualErrorClasses(void) {
   return residualErrorClasses;
 }
 
-void MRF::predictFailureProbability(std::vector<double> ResidualErrors) {
+void MRF::predictFailureProbability() {
   std::vector<double> validResidualErrors;
   std::vector<int> validScanIndices;
 
   // create a new array only containing valid residual errors(closest distance
   // <=1m)
-  for (int i = 0; i < (int)ResidualErrors.size(); ++i) {
-    double e = ResidualErrors[i];
+  for (int i = 0; i < (int)receivedResidualErrors_.size(); ++i) {
+    double e = receivedResidualErrors_[i];
     if (0.0 <= e && e <= maxResidualError_) {
       validResidualErrors.push_back(e);
       validScanIndices.push_back(i);

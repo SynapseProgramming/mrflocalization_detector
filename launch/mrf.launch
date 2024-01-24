@@ -31,7 +31,7 @@
     <!-- If you want to reduce the computational cost,
          please set small values to max_residual_errors_num, max_lpb_computation_num, and sampling_num.
          In particular, max_residual_errors_num is significant. -->
-    <arg name="max_residual_errors_num" default="200" />
+    <arg name="max_residual_errors_num" default="250" />
     <arg name="max_lpb_computation_num" default="1000" />
     <arg name="sampling_num" default="1000" />
     <!-- These values must be included from 0 to 1. -->

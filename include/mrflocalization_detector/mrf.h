@@ -60,6 +60,7 @@ class MRF {
   std::vector<double> transitionProbMat_;
 
   sensor_msgs::LaserScan residualErrors_;
+  std::vector<double> receivedResidualErrors_;
   std::vector<double> usedResidualErrors_;
   std::vector<int> usedScanIndices_;
   bool canUpdateResidualErrors_, gotResidualErrors_;
@@ -254,7 +255,7 @@ class MRF {
   }
   inline double getFailureDetectionHz(void) { return failureDetectionHz_; }
 
-  void predictFailureProbability(std::vector<double> ResidualErrors);
+  void predictFailureProbability();
   void publishScans();
 };
 
