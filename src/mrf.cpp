@@ -264,8 +264,6 @@ double MRF::predictFailureProbabilityBySampling(std::vector<std::vector<double>>
         }
         double misalignmentRatio = (double)misalignedNum / (double)validMeasurementNum;
         double unknownRatio = (double)(measurementNum - validMeasurementNum) / (double)measurementNum;
-        std::cout << "misalignment ratio: " << misalignmentRatio << "\n";
-        std::cout << "unknown ratio: " << unknownRatio << "\n";
         if (misalignmentRatio >= misalignmentRatioThreshold_ || unknownRatio >= unknownRatioThreshold_)
             failureCnt++;
     }
@@ -358,7 +356,6 @@ void MRF::predictFailureProbability(std::vector<double> ResidualErrors)
         }
     }
     std::vector<std::vector<double>> likelihoodVectors = getLikelihoodVectors(usedResidualErrors_);
-    std::vector<double> fs = likelihoodVectors[0];
     std::vector<std::vector<double>> measurementClassProbabilities = estimateMeasurementClassProbabilities(likelihoodVectors);
     std::vector<double> first = measurementClassProbabilities[0];
     setAllMeasurementClassProbabilities(usedResidualErrors_, measurementClassProbabilities);
@@ -390,7 +387,6 @@ void MRF::publishScans()
     for (int i = 0; i < (int)usedResidualErrors_.size(); ++i)
     {
         int idx = usedScanIndices_[i];
-        // std::cout << usedResidualErrors_[i] << " ";
         if (residualErrorClasses[i] == ALIGNED)
             alignedScan.ranges[idx] = residualErrors_.ranges[idx];
         else if (residualErrorClasses[i] == MISALIGNED)
@@ -398,7 +394,6 @@ void MRF::publishScans()
         else
             unknownScan.ranges[idx] = residualErrors_.ranges[idx];
     }
-    // std::cout << "\n";
     alignedScanPub_.publish(alignedScan);
     misalignedScanPub_.publish(misalignedScan);
     unknownScanPub_.publish(unknownScan);
