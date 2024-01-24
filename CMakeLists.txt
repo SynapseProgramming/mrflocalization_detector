@@ -10,12 +10,17 @@ project(mrflocalization_detector)
 
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
+  cv_bridge
   nav_msgs
   roscpp
   sensor_msgs
   std_msgs
   tf2
+  tf2_ros
+  tf2_geometry_msgs
 )
+
+find_package(OpenCV REQUIRED)
 
 
 catkin_package()
@@ -26,12 +31,13 @@ catkin_package()
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
   "${PROJECT_SOURCE_DIR}/include"
 )
 
 
 add_executable(mrf_detector src/node.cpp src/mrf.cpp)
-target_link_libraries(mrf_detector ${catkin_LIBRARIES})
+target_link_libraries(mrf_detector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 
 install(
