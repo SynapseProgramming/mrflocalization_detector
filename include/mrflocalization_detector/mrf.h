@@ -165,12 +165,14 @@ class MRF {
     scanSub_ = nh_.subscribe("/scan_front", 1, &MRF::scanCB, this);
     mapSub_ = nh_.subscribe("/map", 1, &MRF::mapCB, this);
 
-    alignedScanPub_ =
-        nh_.advertise<sensor_msgs::LaserScan>(alignedScanName_, 1);
-    misalignedScanPub_ =
-        nh_.advertise<sensor_msgs::LaserScan>(misalignedScanName_, 1);
-    unknownScanPub_ =
-        nh_.advertise<sensor_msgs::LaserScan>(unknownScanName_, 1);
+    if (publishClassifiedScans_) {
+      alignedScanPub_ =
+          nh_.advertise<sensor_msgs::LaserScan>(alignedScanName_, 1);
+      misalignedScanPub_ =
+          nh_.advertise<sensor_msgs::LaserScan>(misalignedScanName_, 1);
+      unknownScanPub_ =
+          nh_.advertise<sensor_msgs::LaserScan>(unknownScanName_, 1);
+    }
 
     ros::Rate loopRate(10);
 

@@ -342,7 +342,9 @@ void MRF::predictFailureProbability(std::vector<double> ResidualErrors) {
   failureProbability_ =
       predictFailureProbabilityBySampling(measurementClassProbabilities_);
   std::cout << "Failure Probability: " << failureProbability_ << "\n";
-  publishScans();
+  if (publishClassifiedScans_) {
+    publishScans();
+  }
 }
 
 void MRF::publishScans() {
