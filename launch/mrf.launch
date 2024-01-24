@@ -1,6 +1,11 @@
 <launch >
     <arg name="node_name" default="mrf_detector" />
 
+    <!-- Topic and frame parameters -->
+    <arg name="map_topic_name" default="/map" />
+    <arg name="scan_topic_name" default="/scan" />
+    <arg name="map_frame_name" default="map" />
+    <arg name="scan_frame_name" default="laser_front" />
 
     <!-- If publish_classified_scans is true, the above scan messages will be published. -->
     <arg name="publish_classified_scans" default="true" />
@@ -42,6 +47,11 @@
 
     <!-- Failure detector node -->
     <node name="$(arg node_name)" pkg="mrflocalization_detector" type="mrf_detector" output="screen">
+
+        <param name="map_topic_name" value="$(arg map_topic_name)" type="string" />
+        <param name="scan_topic_name" value="$(arg scan_topic_name)" type="string" />
+        <param name="map_frame_name" value="$(arg map_frame_name)" type="string" />
+        <param name="scan_frame_name" value="$(arg scan_frame_name)" type="string" />
 
         <param name="aligned_scan_mrf" value="$(arg aligned_scan_mrf)" type="string" />
         <param name="misaligned_scan_mrf" value="$(arg misaligned_scan_mrf)" type="string" />
