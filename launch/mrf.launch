@@ -1,6 +1,9 @@
 <launch >
     <arg name="node_name" default="mrf_detector" />
 
+    <!-- frequency of detector -->
+    <arg name="failure_detection_hz" default="10.0" />
+
     <!-- Topic and frame parameters -->
     <arg name="map_topic_name" default="/map" />
     <arg name="scan_topic_name" default="/scan" />
@@ -69,6 +72,7 @@
         <param name="sampling_num" value="$(arg sampling_num)" type="int" />
         <param name="misalignment_ratio_threshold" value="$(arg misalignment_ratio_threshold)" type="double" />
         <param name="unknown_ratio_threshold" value="$(arg unknown_ratio_threshold)" type="double" />
+        <param name="failure_detection_hz" value="$(arg failure_detection_hz)" type="double" />
 
     </node >
 </launch >

@@ -162,6 +162,7 @@ class MRF {
               unknownRatioThreshold_);
     nh_.param("transition_probability_matrix", transitionProbMat_,
               transitionProbMat_);
+    nh_.param("failure_detection_hz", failureDetectionHz_, failureDetectionHz_);
 
     scanSub_ = nh_.subscribe("/scan_front", 1, &MRF::scanCB, this);
     mapSub_ = nh_.subscribe("/map", 1, &MRF::mapCB, this);

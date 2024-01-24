@@ -4,7 +4,8 @@
 int main(int argc, char **argv) {
   ros::init(argc, argv, "mrf_detector");
   MRF node;
-  ros::Rate loopRate(5);
+  double hz = node.getFailureDetectionHz();
+  ros::Rate loopRate(hz);
   while (ros::ok()) {
     ros::spinOnce();
     node.predictFailureProbability();
