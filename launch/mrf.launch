@@ -2,11 +2,11 @@
     <arg name="node_name" default="mrf_detector" />
 
     <!-- frequency of detector -->
-    <arg name="failure_detection_hz" default="10.0" />
+    <arg name="failure_detection_hz" default="5.0" />
 
     <!-- Topic and frame parameters -->
     <arg name="map_topic_name" default="/map" />
-    <arg name="scan_topic_name" default="/scan" />
+    <arg name="scan_topic_name" default="/scan_front" />
     <arg name="map_frame_name" default="map" />
     <arg name="scan_frame_name" default="laser_front" />
 
@@ -26,7 +26,7 @@
     <arg name="normal_distribution_var" default="0.01" />
     <arg name="exponential_distribution_lambda" default="2.0" />
     <arg name="max_residual_error" default="1.0" />
-    <arg name="residual_error_resolution" default="0.05" />
+    <arg name="residual_error_resolution" default="0.01" />
 
     <!-- Parameters related to the failure probability calculation -->
     <!-- These values must be positive. -->
@@ -34,8 +34,8 @@
     <!-- If you want to reduce the computational cost,
          please set small values to max_residual_errors_num, max_lpb_computation_num, and sampling_num.
          In particular, max_residual_errors_num is significant. -->
-    <arg name="max_residual_errors_num" default="250" />
-    <arg name="max_lpb_computation_num" default="1000" />
+    <arg name="max_residual_errors_num" default="300" />
+    <arg name="max_lpb_computation_num" default="1200" />
     <arg name="sampling_num" default="1000" />
     <!-- These values must be included from 0 to 1. -->
     <arg name="misalignment_ratio_threshold" default="0.1" />

@@ -315,22 +315,30 @@ void MRF::predictFailureProbability() {
               << " The threshold is " << minValidResidualErrorsNum_
               << ", but the number of validResidualErrors "
               << validResidualErrorsSize << "." << std::endl;
-    failureProbability_ = -1.0;
+    failureProbability_ = 1.0;
     return;
   } else if (validResidualErrorsSize <= maxResidualErrorsNum_) {
     usedResidualErrors_ = validResidualErrors;
     usedScanIndices_ = validScanIndices;
   } else {  // undersample the residual errors
 
+    // take the lowest values
+    std::vector<std::pair<double, int>> lowest;
+    for (int i = 0; i < validResidualErrors.size(); i++) {
+      lowest.push_back(
+          std::make_pair(validResidualErrors[i], validScanIndices[i]));
+    }
+    sort(lowest.begin(), lowest.end());
+
     usedResidualErrors_.resize(maxResidualErrorsNum_);
     usedScanIndices_.resize(maxResidualErrorsNum_);
-    for (int i = 0; i < maxResidualErrorsNum_; ++i) {
-      int idx = rand() % (int)validResidualErrors.size();
-      usedResidualErrors_[i] = validResidualErrors[idx];
-      usedScanIndices_[i] = validScanIndices[idx];
-      validResidualErrors.erase(validResidualErrors.begin() + idx);
-      validScanIndices.erase(validScanIndices.begin() + idx);
+
+    for (int i = 0; i < maxResidualErrorsNum_; i++) {
+      usedResidualErrors_[i] = lowest[i].first;
+      usedScanIndices_[i] = lowest[i].second;
     }
+    validResidualErrors.clear();
+    validScanIndices.clear();
   }
   std::vector<std::vector<double>> likelihoodVectors =
       getLikelihoodVectors(usedResidualErrors_);
