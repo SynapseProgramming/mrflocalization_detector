@@ -5,6 +5,7 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
+#include <std_msgs/Float64.h>
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/buffer.h>
@@ -43,6 +44,9 @@ class MRF {
       unknownScanName_;
   ros::Publisher failureProbPub_, alignedScanPub_, misalignedScanPub_,
       unknownScanPub_;
+
+  ros::Publisher resultPub_;
+
   bool publishClassifiedScans_;
 
   // transforms
@@ -175,6 +179,8 @@ class MRF {
       unknownScanPub_ =
           nh_.advertise<sensor_msgs::LaserScan>(unknownScanName_, 1);
     }
+
+    resultPub_ = nh_.advertise<std_msgs::Float64>("/mrf_result", 1);
 
     ros::Rate loopRate(10);
 

@@ -350,6 +350,9 @@ void MRF::predictFailureProbability() {
   failureProbability_ =
       predictFailureProbabilityBySampling(measurementClassProbabilities_);
   std::cout << "Failure Probability: " << failureProbability_ << "\n";
+  std_msgs::Float64 result;
+  result.data = failureProbability_;
+  resultPub_.publish(result);
   if (publishClassifiedScans_) {
     publishScans();
   }
