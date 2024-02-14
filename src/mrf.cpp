@@ -102,21 +102,17 @@ void MRF::xy2uv(double x, double y, int *u, int *v) {
 }
 
 inline double MRF::calculateNormalDistribution(double e) {
-  return (0.95 * (2.0 * NDNormConst_ *
-                  exp(-((e - NDMean_) * (e - NDMean_)) / (2.0 * NDVar_))) +
-          0.05 * (1.0 / maxResidualError_)) *
-         residualErrorReso_;
+  return (2.0 * NDNormConst_ *
+          exp(-((e - NDMean_) * (e - NDMean_)) / (2.0 * NDVar_)));
 }
 
 inline double MRF::calculateExponentialDistribution(double e) {
-  return (0.95 * (1.0 / (1.0 - exp(-EDLambda_ * maxResidualError_))) *
-              EDLambda_ * exp(-EDLambda_ * e) +
-          0.05 * (1.0 / maxResidualError_)) *
-         residualErrorReso_;
+  return (1.0 / (1.0 - exp(-EDLambda_ * maxResidualError_))) * EDLambda_ *
+         exp(-EDLambda_ * e);
 }
 
 inline double MRF::calculateUniformDistribution(void) {
-  return (1.0 / maxResidualError_) * residualErrorReso_;
+  return (1.0 / maxResidualError_);
 }
 
 inline double MRF::getSumOfVector(std::vector<double> vector) {
